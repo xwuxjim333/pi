@@ -103,14 +103,17 @@ int main(int argc, char* argv[])
             compute_pi = &compute_pi_baseline;
             strcpy(file_time, "baseline_time.txt");
             strcpy(file_error, "baseline_error.txt");
+            break;
         case 1:
             compute_pi = &compute_pi_avx_simd;
             strcpy(file_time, "avxsimd_time.txt");
             strcpy(file_error, "avxsimd_error.txt");
+            break;
         case 2:
             compute_pi = &compute_pi_avx_simd_opt;
             strcpy(file_time, "opt_time.txt");
             strcpy(file_error, "opt_error.txt");   
+            break;
         default:
             break;
     }
@@ -119,7 +122,7 @@ int main(int argc, char* argv[])
         start = clock();
         compute_pi(interval*1000000);
         end = clock();
-        time[SAMPLE] = (double)(end - start) / CLOCKS_PER_SEC;
+        time[i] = (double)(end - start) / CLOCKS_PER_SEC;
     }
     double mean_time = compute_mean(time);
 
