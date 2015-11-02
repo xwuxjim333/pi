@@ -128,15 +128,15 @@ int main(int argc, char* argv[])
 
     double pi = 0.0;
     pi = compute_pi(interval*1000000);
-	double diff = pi - M_PI > 0 ? pi - M_PI : M_PI - pi;
-	double error = diff / M_PI;
+    double diff = pi - M_PI > 0 ? pi - M_PI : M_PI - pi;
+    double error = diff / M_PI;
 
     FILE *ftime = fopen(file_time, "a");
-	fprintf(ftime, "%d %lf\n", interval , mean_time);
+    fprintf(ftime, "%d %lf\n", interval , mean_time);
     fclose(ftime);
 
     FILE *ferror = fopen(file_error, "a");
-	fprintf(ferror, "%d %.15lf\n", interval, error);
+    fprintf(ferror, "%d %.15lf\n", interval, error);
     fclose(ferror);
     
     return 0;
