@@ -6,7 +6,6 @@
 #include <string.h>
 
 #define M_PI 3.14159265358979323846
-#define n 128000000
 #define SAMPLE 5
 
 double compute_pi_baseline(size_t dt)
@@ -48,6 +47,32 @@ double compute_pi_avx_simd(size_t dt)
     return pi * 4.0;
 }
 
+double compute_pi_avx_simd_opt(size_t dt)
+{
+    double pi = 0.0;
+    double delta = 1.0 / dt;
+    register __m256d ymm0, ymm1, ymm2, ymm3, ymm4;
+                             
+    ymm0 = _mm256_set1_pd(1.0);
+    ymm1 = _mm256_set1_pd(delta);
+    ymm2 = _mm256_set_pd(delta * 3, delta * 2, delta * 1, 0.0);
+    ymm4 = _mm256_setzero_pd();
+
+    for (int i = 0; i <= dt - 4; i += 4) {
+        ymm3 = _mm256_set1_pd(i * delta);
+        ymm3 = _mm256_add_pd(ymm3, ymm2);
+        ymm3 = _mm256_fmadd_pd(ymm3, ymm3, ymm0);
+        ymm3 = _mm256_div_pd(ymm1, ymm3);
+        ymm4 = _mm256_add_pd(ymm4, ymm3);
+    }
+
+    double tmp[4] __attribute__((aligned(32)));
+    _mm256_store_pd(tmp, ymm4);
+    pi += tmp[0] + tmp[1] + tmp[2] + tmp[3];
+
+    return pi * 4.0;
+}
+
 double compute_mean(double t[SAMPLE])
 {
     double mean = 0.0;
@@ -64,6 +89,7 @@ double compute_mean(double t[SAMPLE])
 int main(int argc, char* argv[])
 {
     int method = atoi(argv[1]);
+    int interval = atoi(argv[2]);
 
     clock_t start, end;
     double time[SAMPLE];
@@ -77,29 +103,37 @@ int main(int argc, char* argv[])
             compute_pi = &compute_pi_baseline;
             strcpy(file_time, "baseline_time.txt");
             strcpy(file_error, "baseline_error.txt");
+        case 1:
+            compute_pi = &compute_pi_avx_simd;
+            strcpy(file_time, "avxsimd_time.txt");
+            strcpy(file_error, "avxsimd_error.txt");
+        case 2:
+            compute_pi = &compute_pi_avx_simd_opt;
+            strcpy(file_time, "opt_time.txt");
+            strcpy(file_error, "opt_error.txt");   
         default:
             break;
     }
 
     for (int i = 0; i < SAMPLE; i++) {
         start = clock();
-        compute_pi(n);
+        compute_pi(interval*1000000);
         end = clock();
         time[SAMPLE] = (double)(end - start) / CLOCKS_PER_SEC;
     }
     double mean_time = compute_mean(time);
 
     double pi = 0.0;
-    pi = compute_pi(n);
+    pi = compute_pi(interval*1000000);
 	double diff = pi - M_PI > 0 ? pi - M_PI : M_PI - pi;
 	double error = diff / M_PI;
 
     FILE *ftime = fopen(file_time, "a");
-	fprintf(ftime, "%lf\n", mean_time);
+	fprintf(ftime, "%d %lf\n", interval , mean_time);
     fclose(ftime);
 
     FILE *ferror = fopen(file_error, "a");
-	fprintf(ferror, "%.15lf\n", error);
+	fprintf(ferror, "%d %.15lf\n", interval, error);
     fclose(ferror);
     
     return 0;
