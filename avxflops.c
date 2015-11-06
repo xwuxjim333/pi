@@ -8,7 +8,7 @@
 
 #define M_PI 3.14159265358979323846
 
-double compute_pi(size_t dt)
+double compute_pi(size_t dt, int num)
 {
     double pi = 0.0;
     double delta = 1.0 / dt;
@@ -16,10 +16,10 @@ double compute_pi(size_t dt)
     
     ymm0 = _mm256_set1_pd(1.0);
     ymm1 = _mm256_set1_pd(delta);
-    ymm2 = _mm256_set_pd(delta * 3, delta * 2, delta * 1, 0.0);
+    ymm2 = _mm256_set_pd(delta * (3+4*num), delta * (2+4*num), delta * (1+4*num), delta * (0.0+4*num));
     ymm4 = _mm256_setzero_pd();
  
-    for (int i = 0; i <= dt - 16; i += 16) {
+    for (int i = num; i <= dt-16+num; i += 16) {
         ymm3 = _mm256_set1_pd(i * delta);
         ymm3 = _mm256_add_pd(ymm3, ymm2);
         ymm3 = _mm256_fmadd_pd(ymm3, ymm3, ymm0);
@@ -31,7 +31,7 @@ double compute_pi(size_t dt)
     _mm256_store_pd(tmp, ymm4);
     pi += tmp[0] + tmp[1] + tmp[2] + tmp[3];
 
-    return pi * 4.0;
+    return pi*4;
 } 
 
 void flops(int tds, size_t interval)
@@ -41,7 +41,7 @@ void flops(int tds, size_t interval)
     
 #pragma omp parallel num_threads(tds)
     {
-        double ret = compute_pi(interval*1000000);
+        double ret = compute_pi(interval*1000000, omp_get_thread_num());
         sum[omp_get_thread_num()] = ret;
     }
     
